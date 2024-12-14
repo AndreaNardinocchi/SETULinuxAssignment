@@ -1,0 +1,696 @@
+#!/bin/bash
+# Student name: Andrea Nardinocchi
+# Student id: W20108884
+# The goal of this project is to, using Linux bash shell scripting, create a system that automates the process of tracking
+# and managing records in a system of choice.
+# The system is about a hotel guests list which can be updated, deleted and viewed based upon a list of pre-written
+# queries. It enables users to add new hotel guest records, search for their data and even delete them.
+
+# Bugs: Based on my own testing, I see that a user can add non-existent month and day numbers as 'date', and I was unable
+# to find a script that would not enable users to input months such as '15' or days such as '45'.
+
+# The 'basename $0' command will return the file name, whatever the user has decided to call it
+# 'a' is a variable created to convey the filename
+
+a=`basename $0`
+clear
+
+
+# A list of functions is created below which are to be nesting into each other creating a a smooth flow of data inputted by
+# the user, which enables the script to handle errors and avert any code/data flow breaking
+
+# This function will handle the exit at any time after the user has chosen the first 6 options
+# There will be an 'if'statement such as [[ "${fname}" == "#" ]] to exit ('#' is the key to type)
+function exiting() {
+   echo "Lets get you out of here!"
+   exit 0
+}
+
+
+# This function will handle the 'first name' input flow of data
+function fnameCheck() {
+   # The below "if ! [ -z "${fname}" ]" condition will verify that no empty filed is inputted,
+   # while the below one [[ "${fname}" =~ ^[a-zA-Z]*$ ]] will verify that only letters are accepted (source below)
+   # https://unix.stackexchange.com/questions/416108/how-to-check-if-string-contain-alphabetic-characters-or-alphabetic-characters-an
+   if ! [ -z "${fname}" ] && [[ "${fname}" =~ ^[a-zA-Z]*$ ]] && ! [[ "${fname}" == "#" ]]
+      then
+         echo -e "Now enter the guest's last name."
+         read lname
+         lnameCheck
+   elif [ -z "${fname}" ] || ! [[ "${fname}" =~ ^[a-zA-Z]*$ ]]  && ! [[ "${fname}" == "#" ]]
+      then
+         echo  -e "Warning: You cannot leave the field as blank or enter numbers\n"
+         fnameCheckAgain
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'first name' input flow of data when the data need to be inputted again
+function fnameCheckAgain() {
+   echo -e "Please, enter the guest's first name again."
+   read fname
+   fnameCheck
+}
+
+# This function will handle the 'last name' input flow of data
+function lnameCheck() {
+   if ! [ -z "${lname}" ] && [[ "${lname}" =~ ^[a-zA-Z]*$ ]] && ! [[ "${lname}" == "#" ]]
+      then
+         echo -e 'Enter their room number (4 digits):'
+         read roomNumber
+         roomCheck
+   elif [ -z "${lname}" ] || ! [[ "${lname}" =~ ^[a-zA-Z]*$ ]] && ! [[ "${lname}" == "#" ]]
+      then
+          echo  -e "Warning: You cannot leave the field as blank or enter numbers\n"
+          lnameCheckAgain
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'last name' input flow of data when the data need to be inputted again
+function lnameCheckAgain() {
+   echo -e "Please, enter the guest's last name again."
+   read lname
+   lnameCheck
+}
+
+# This function will handle the 'room number' input flow of data. A 'room number' must be of 4 digits and be within the
+# '1000-7999' range
+# To set the '4 digits' 'if' condition '[[ "${roomNumber}" =~ ^[0-9]{4} ]]' I availed of the below source
+# as knowledge support
+# https://stackoverflow.com/questions/25990748/only-allow-numbers-from-standard-input-read-command
+function roomCheck() {
+   if ! [[ "${roomNumber}" == "#" ]]
+      then
+         if ! [ -z "${roomNumber}" ] && [[ "${roomNumber}" =~ ^[0-9]{4} ]]
+         # The below variable will filter the list 'hotelGuests.txt' (the list contains all hotel guest records) and print the
+         # 'room number' if exists in the list
+         pickedRoomNumber=`grep -i " ${roomNumber} " hotelGuests.txt | awk -e '{print $4 }'`
+            then
+               # The first condition below will check that the 'room number' inputted by the user does not exist in the list
+               # The second condition will verify that the 'room number' is made of 4 digits and is within the '1000-7999' range
+               if ! [ "$pickedRoomNumber" == "$roomNumber" ] && [[ "$roomNumber" -ge 999 && "$roomNumber" -le 8000 ]]
+                  then
+                     echo "Room $roomNumber is available"
+                     echo 'Enter their phone number (123-4567890):'
+                     read phone
+                     phoneNumberCheck
+               # If the 'room number' is not within the '1000-7999' range
+               elif ! [[ "$roomNumber" -ge 999 && "$roomNumber" -le 8000 ]]
+                  then
+                     echo "We have rooms from 1000 to 7999"
+                     roomCheckAgain
+                  # If the 'room number' is indeed within the '1000-7999' range, but it already exists in 'hotelGuests.txt'
+               else
+                  echo "Sorry, room $roomNumber is taken already!"
+                  roomCheckAgain
+               fi
+         elif [ -z "${roomNumber}" ] && ! [[ "${roomNumber}" =~ ^[0-9]{4} ]] 
+            then
+               echo  -e "Warning: You cannot leave the field as blank or enter data format different to dd-mm-yyyy\n"
+               roomCheckAgain
+         fi
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'room number' input flow of data when the data need to be inputted again
+function roomCheckAgain() {
+   echo "Please, Enter their room number (4 digits) again:"
+   read roomNumber
+   roomCheck
+
+}
+
+# This function will handle the 'phone number' input flow of data, whose format is 123-1234567
+function phoneNumberCheck() {
+   if ! [[ "${phone}" == "#" ]]
+      then
+      if ! [ -z "${phone}" ] && [[ "${phone}" =~ ^[0-9]{3}-[0-9]{7}$ ]]
+         then
+            echo "Please, enter their nationality:"
+            read nationality
+            nationalityCheck
+         else
+            echo  -e "Warning: You cannot leave the field as blank or enter letters\n"
+            phoneNumberCheckAgain
+      fi
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'phone number' input flow of data when the data need to be inputted again
+function phoneNumberCheckAgain() {
+   echo "Please, enter their phone number (123-4567890) again:"
+   read phone
+   phoneNumberCheck
+}
+
+# This function will handle the 'nationality' input flow of data
+function nationalityCheck() {
+   if ! [[ "${nationality}" == "#" ]]
+      then
+      if ! [ -z "${nationality}" ] && [[ "${nationality}" =~ ^[a-zA-Z]*$ ]]
+         then
+            echo "Please enter the room rate (51 - 999 euro):"
+            read roomRate
+            roomRateCheck
+         else
+            echo  -e "Warning: You cannot leave the field as blank or enter numbers"
+            nationalityCheckAgain
+      fi
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'nationality' input flow of data when the data need to be inputted again
+function nationalityCheckAgain() {
+   echo "Please, enter their nationality again"
+   read nationality
+   nationalityCheck
+}
+
+# This function will handle the 'room price rate' input flow of data which must be within the '51-999' range
+function roomRateCheck() {
+   if ! [[ "${roomRate}" == "#" ]]
+      then
+         if ! [ -z "${roomRate}" ] && [[ "$roomRate" -ge 50 && "$roomRate" -le 1000 ]] 
+            then
+            echo "Enter the check-in date YYYY-MM-DD:"
+            read checkIn
+            checkInDateCheck
+         else
+            echo  -e "Warning: You cannot leave the field as blank or enter letters"
+            roomRateCheckAgain
+      fi
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'room rate' input flow of data when the data need to be inputted again
+function roomRateCheckAgain() {
+   echo "Please, enter the room rate again:"
+   read roomRate
+   roomRateCheck
+}
+
+# This function will handle the 'check in date' input flow of data, whose format is YYYY-MM-DD
+function checkInDateCheck() {
+   if ! [[ "${checkIn}" == "#" ]]
+      then
+      if ! [ -z "${checkIn}" ] && [[ "${checkIn}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]
+         then
+            echo "Enter the check-out date YYYY-MM-DD:"
+            read checkOut
+            checkOutDateCheck
+         else
+            echo  -e "Warning: You cannot leave the field as blank or enter data format different to dd-mm-yyyy\n"
+            checkInDateCheckAgain
+      fi
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'check in date' input flow of data when the data need to be inputted again
+function checkInDateCheckAgain() {
+   echo "Please, enter the check-in date YYYY-MM-DD again:"
+   read checkIn
+   checkInDateCheck
+}
+
+# This function will handle the 'check out date' input flow of data, whose format is YYYY-MM-DD
+function checkOutDateCheck() {
+   if ! [[ "${checkOut}" == "#" ]]
+      then
+         if ! [ -z "${checkOut}" ] && [[ "${checkOut}" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]
+            then
+               # The below variable 'stay' contains an 'expression/subtraction' between the 'check in' and the 'check out' dates 
+               # source https://stackoverflow.com/questions/4946785/how-to-find-the-difference-in-days-between-two-dates
+               stay=`echo $(( ($(date -d $checkOut +%s) - $(date -d $checkIn +%s)) / 86400 ))`
+               # The below 'if' condition checks that the variable 'stay' is greater than '0', which effectively makes the 
+               # 'check out' date legitimate
+               if  [[ $stay > 0 ]]
+               # The user, then, will add the guest's email
+                  then
+                     echo "Enter the guest's email"
+                     read email
+                     emailCheck
+               else
+                  echo -e "Warning: the check-out date cannot precede the check-in date!"
+                  checkOutDateCheckAgain
+               fi
+         else
+            checkOutDateCheckAgain
+         fi
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'check out date' input flow of data when the data need to be inputted again
+function checkOutDateCheckAgain() {
+   echo "Please, enter the check-out date YYYY-MM-DD again:"
+   read checkOut
+   checkOutDateCheck
+}
+
+# This function will handle the 'number of nights a guest stayed' input flow of data
+function guestStayNights() {
+   echo  "Enter guest ID: "
+   read guest_id
+   if ! [[ "$guest_id" == "#" ]]
+      then
+         # The variable 'pickedId' filters in and prints the guest 'id' if listed in the hotelGuests.txt file
+         pickedId=`grep -i "$guest_id" hotelGuests.txt | awk -e '{print $1 }'`
+         # The below 'if' condition will verify that the inputted 'guest id' exists in the guestHotels.txt file
+         if [ "$guest_id" == "$pickedId" ]
+            then
+               # The below 'guestStay' variable will filter in and print out the the 'full name' and 'number of nights the guest stayed'
+               guestStay=`grep -i "$guest_id" hotelGuests.txt | awk -e '{print $2 " " $3 " stayed for " $10 " nights"}'`
+               echo -e "\n$guestStay\n"
+         else
+            echo "Guest not found." # what should happen for the end user next
+      fi
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'which guests stayed/checked-in in the year YYYY' input flow of data
+function guestStayYear() {
+   echo -e "\nEnter a year to search: "
+   read year
+   if ! [[ "$year" == "#" ]]
+      then
+         if ! [ -z "${year}" ] && [[ "${year}" =~ ^[0-9]{4}$ ]] && [[ "${year}" -ge 1990 && "${year}" -lt 2099 ]]
+            then
+            # The variable 'yearStay' verifies that the 'year' inputted exists in the 'hotelGuests.txt', will print it and
+            # ensure no duplicates are printed out either
+            yearStay=`grep -i "$year" hotelGuests.txt | awk '{print $8}' | cut  -c1-4 | uniq`
+            # If the data inputted is not empty and exist in the 'hotelGuests.txt'file
+            if ! [ -z "${yearStay}" ] && [[ "$yearStay" == "$year" ]]
+               then
+                  echo -e "\nView the list of guests per year of stay:\n"
+                  # All hotel guests who check in the 'year' inputted by the user will get printed out
+                  grep -i "$year" hotelGuests.txt | awk -e '{print $1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "$10" "$11}'
+                  echo
+            else
+               echo -e "Warning: no guest stayed in $year!\n"
+            fi
+         else
+            echo -e "You added no year, so exiting now!\n"
+         fi
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'guest deletion' input flow of data
+function deleteCheck() {
+   echo "Enter the guest ID to delete off the list:"
+   read id
+   if ! [[ "$id" == "#" ]]
+      then
+         # The variable 'id' filters the hotel guests through the 'hotelGuests.txt' file and prints out the 'id' if it finds
+         # a match in the records
+         pickedId=`grep -i "$id" hotelGuests.txt | awk -e '{print $1 }'`
+         # If the 'id' exists
+         if [[ "$id" == "$pickedId" ]];
+            then
+               echo
+               # The guest record to be deleted gets saved into the archivedHotelGuests.txt
+               grep "$id" hotelGuests.txt >> archivedHotelGuests.txt
+               # The below grep command will use '-v' to select the non-matching records which will then get redirected to
+               # the hotelGuests.txt file. The chosen record to be deleted has been deleted at this point
+               grep -v "$id" hotelGuests.txt > guests
+               mv guests hotelGuests.txt
+               echo -e "The guest with id $id has been successfully deleted!\n"
+               deleteAgain
+         else
+            echo
+            echo "Guest not found." # what should happen for the end user next?
+            deleteAgain
+         fi
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'guest deletion' input flow of data when the data need to be inputted again
+function deleteAgain() {
+   echo -e "Would you like to delete another guest? (y/n - Any other answer equates to 'n'):"
+   read answer
+   if ! [[ "$answer" == "#" ]]
+     then
+        if [[ "$answer"  ==  "y" || "$answer" == "Y" ]]
+           then
+              deleteCheck
+        else
+           echo "Bye!"
+        fi
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'multiple guests deletion' input flow of data
+function deleteMultipleCheck() {
+   echo "The below one is a list of the booking years in your booking list: "
+   # The below command prints out all years that exist in the hotelGuests.txt file with no duplicate, enabling the user
+   # to, then, input one of them
+   awk  '{print $8}' hotelGuests.txt |  cut  -c1-4 | sort | uniq
+   echo -e "\nPlease,enter the booking year before which all booking records should be deleted:"
+   read year
+   if ! [[ "$year" == "#" ]]
+      then
+      if ! [ -z "${year}" ] && [[ "${year}" =~ ^[0-9]{4}$ ]] && [[ "${year}" -ge 1990 && "${year}" -lt 2099 ]]
+         then
+            # The variable 'yearsStay' will filter in the guests who checked in in the chosen year, print out their 'year'
+            # '(cut  -c1-4 | uniq)' is piped in to 'isolate' the 'year' from the $8 'date' and to make it unique, in case
+            # the list contains multiple records with the same 'check in year'
+            yearStay=`grep -i " $year" hotelGuests.txt | awk '{print $8}' | cut  -c1-4 | uniq`
+            # If the 'year' inputted is not empty and exists in the 'hotelGuests.txt' file
+            if ! [ -z "${yearStay}" ] && [[ "$yearStay" == "$year" ]]
+               then
+                  echo -e "\nCheck the below list of guests:\n"
+                  # The 'awk' command below prints out all hotel guests who checked-in the year inputted by the user and
+                  # before.
+                  # Source consulted: # https://stackoverflow.com/questions/19801358/printing-lines-which-have-a-field-number-greater-than-in-awk
+                  yearStay=`expr $yearStay + 1`
+                  awk -v yearStay="$yearStay" '$8<=yearStay {print $1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "$10" "$11}' hotelGuests.txt
+                  echo -e  "Please, confirm that you wish to delete them (y/n):"
+                  read answer
+                  if [[ "$answer"  ==  "y" || "$answer" == "Y" ]]
+                     then
+                        echo "The below list have been deleted!"
+                        # Below, a list of guest records to be deleted is printed out
+                        # The list of guest records to be deleted are redirected to the 'archivedHotelGuests.txt' file
+                        # The guest records are finally deleted from the 'hotelGuests.txt' file
+                        awk -v yearStay="$yearStay" '$8<=yearStay {print $1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "$10" "$11}' hotelGuests.txt
+                        awk -v yearStay="$yearStay" '$8<=yearStay {print $1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "$10" "$11}' hotelGuests.txt  | sort -k 8n | uniq > guests
+                        mv guests archivedHotelGuests.txt
+                        awk -v yearStay="$yearStay" '$8>yearStay {print $1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "$10" "$11}' hotelGuests.txt > guests
+                        mv guests hotelGuests.txt
+                        echo
+                  else
+                     echo "Bye!"
+                  fi
+            else
+               echo -e "Warning: no guest stayed in $year!\n"
+            fi
+      else
+         echo
+         echo "Year not found"
+         deleteMultipleCheckAgain
+      fi
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'multiple guests deletion' input flow of data when the data need to be inputted again
+function deleteMultipleCheckAgain() {
+   deleteMultipleCheck
+}
+
+# This function will handle the 'email' input flow of data as well as the guest record addition to the hotelGuests.txt list
+# source: https://stackoverflow.com/questions/2138701/checking-correctness-of-an-email-address-with-a-regular-expression-in-bash
+function emailCheck {
+   if ! [[ "${email}" == "#" ]]
+      then
+         if [[ "${email}" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$ ]]
+            then
+               echo "----------- Entered Data ---------------------------------------------"
+               # All data inputted by the user are listed below
+               echo $id " " $fname " " $lname " " $roomNumber " " $phone " " $nationality " " $roomRate " " $checkIn " " $checkOut " " $stay " " $email " "
+               echo "----------------------------------------------------------------------"
+               echo -n 'Are you sure you want to add this contact (y/n) :'
+               read answer
+               if [[ "$answer"  ==  "y" || "$answer" == "Y" ]]
+                  then
+                     echo "----------------------------------------------------------------------"
+                     echo  $id " " $fname " " $lname " " $roomNumber " " $phone " " $nationality " " $roomRate " " $checkIn " " $checkOut " " $stay " " $email " " added successfully
+                     echo "----------------------------------------------------------------------"
+                     # The data are added to the hotelGuests.txt file, sorted according to the 'check in year', redi-
+                     # rected to the 'guests' file, which will then be renamed hotelGuests.txty
+                     echo  $id " " $fname " " $lname " " $roomNumber " " $phone " " $nationality " " $roomRate " " $checkIn " " $checkOut " " $stay " " $email" "  >> hotelGuests.txt
+                     sort hotelGuests.txt -k 8n | uniq >> guests | mv guests hotelGuests.txt
+                  else
+	             echo "Bye!"
+               fi
+         else
+            echo "Not quite!"
+            emailCheckAgain
+         fi
+   else
+      exiting
+   fi
+}
+
+# This function will handle the 'email address' input flow of data when the data need to be inputted again
+function emailCheckAgain {
+   echo "Please, enter the guest's email again."
+   read email
+   emailCheck
+}
+
+
+while true;
+  do
+    # This is the 'main menu' a user is presented with as they launch the shell script
+    echo "Hello, this is The 'Latindjango Hotel Reservations System' - You can exit the system now by typing '6' or '#' after selecting an option!"
+    echo "Have fun now!"
+    echo "----------------------------------------------------------------------------------------------------------"
+    echo
+    echo "Hotel guests records:"
+    echo "1. Add new hotel guest details"
+    echo "2. View hotel guest details"
+    echo "3. Delete a hotel guest"
+    echo "4. Delete multiple hotel guests"
+    echo "5. View the list of archived hotel guests"
+    echo "6. Exit"
+    read -p "Select an option: " choice
+    case $choice in
+       1)
+          # 1. Add new hotel guest details"
+          # The command 'uuidgen' generates a unique hotel guest UUID as per https://www.baeldung.com/linux/bash-generate-uuid
+          id=`uuidgen`
+          echo "Please, enter the guest first name."
+          read fname
+          # The function 'fnameCheck' is the only one that needs to be added here as the rest are nested into each other in
+          # a seamless flow of data
+          fnameCheck
+          ;;
+       2)
+          # 2. View guest details"
+          # This is the 'sub menu' a user is presented with as they choose option '2' from the 'main menu'
+          echo "Search the hotel guest records:"
+          echo "a. View list of hotel guests"
+          echo "b. Search a hotel guest by their last name"
+          echo "c. View list of hotel guests with the same nationality"
+          echo "d. View how long the stay was for one hotel guest"
+          echo "e. View the list of guests who stayed in for more than 7 days"
+          echo "f. View the list of guests per year of stay"
+          echo "g. View the list of guests whose rate was higher than"
+          echo "h. Exit"
+          read -p "Select an option: " searchChoice
+
+          # a. View list of guests
+          if ! [[ "$searchChoice" == "#" ]]
+             then
+                if [ "$searchChoice" == "A" ] || [ "$searchChoice" == "a" ]
+                   then
+                      echo -e "\nView the list of active hotel guests below:"
+                      echo "==================================================================================================================="
+                      # The below 'awk' command enables the user to get a full view of the hotel guest records
+                      awk 'BEGIN { printf "%-35s %s %-7s %s %-15s %s %-5s %s %-7s %s %-5s %s\n", "id", "fname", "lname", "room", "phone", "nationality", "rate", "check-in", "check-out", "nights", "email", "" } { printf "%-5s %s %-5s %s %-5s %s %-5s %s %-5s %s %-5s %s\n",$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, "", "","" }' hotelGuests.txt
+                      echo
+
+          # b. Search a guest by their ID
+          elif [ "$searchChoice" == "B" ] || [ "$searchChoice" == "b" ]
+             then
+                read -p "Enter guest last name: " guest_lname
+                if ! [[ "$guest_lname" == "#" ]]
+                   then
+                      # Creating variable 'pickedlname' to retrieve the entered guestId to match with one of those included in the
+                      # hotelGuests.txt file if it exists
+                      pickedlname=`grep -i "$guest_lname" hotelGuests.txt | awk -e '{print tolower($3) }'`
+                      lname=`echo "$guest_lname" | awk '{print  tolower($guest_lname) }'`
+               	      if [ "$lname" == "$pickedlname" ];
+                         then
+                            echo
+                            # The below command filters in the record that contains the 'inputted lname' and print outs the full
+                            # hotel guest record
+	                    grep -i "$guest_lname" hotelGuests.txt | awk -e '{print $1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "$10" "$11}'
+                            echo
+                      else
+                         echo
+                         echo "Guest not found." # what should happen for the end user next?
+                      fi
+                else
+                   exiting
+                fi
+
+          # c. View list of guests with the same nationality
+          elif [ "$searchChoice" == "C" ] || [ "$searchChoice" == "c" ]
+             then
+                echo -e "Please, check the below list of guest nationalities\n"
+                # The below command prints out the nationalities that exist in the hotelGuests.txt file and does away with
+                # duplicates to offer a view to the user of the nationalities that they can search for
+                awk '{print $6}' hotelGuests.txt | sort -k 6 | uniq
+                echo
+                read -p "Enter nationality: " nationality
+                if ! [[ "$nationality" == "#" ]]
+                   then
+                      # The variable 'pickedNationality' filters in the inputted nationality from the 'hotelGuests.txt' file
+                      # if it exists in it already
+                      # The nationality variable turns the inputted 'nationality' into lower case making the user selection case insensitive
+                      pickedNationality=`grep -i "$nationality" hotelGuests.txt | awk -e '{print tolower($6) }' | uniq`
+                      nationality=`echo "$nationality" | awk '{print  tolower($nationality) }'`
+                      # If the inputted data is not empty, it is made of letters only and matches one of the nationalities
+                      # on record
+                      if ! [ -z "${nationality}" ] && [[ "${nationality}" =~ ^[a-zA-Z]*$ ]] && [ "$pickedNationality" == "$nationality" ]
+                         then
+                            # The 'grep' command filers in all records that contain the inputted nationality, and the 'awk'
+                            # command prints it out
+                            grep -i "$nationality" hotelGuests.txt | awk -e '{print $1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "$10" "$11}'
+                            echo
+                      else
+                         echo  -e "No guest in the list is $nationality\nWarning: You cannot leave the field as blank or enter numbers\n"
+                      fi
+                else
+                   exiting
+                fi
+
+          # d. View how long the stay was for one guest
+          elif [ "$searchChoice" == "D" ] || [ "$searchChoice" == "d" ]
+             then
+                echo -n 'Do you want to view the list of hotel guests? (y/n) :'
+                read answer
+                if ! [[ "$answer" == "#" ]]
+                   then
+                      if [[ "$answer"  ==  "y" || "$answer" == "Y" ]]
+                         then
+                         # Printing outa view of the 'ids' and 'full names' of the hotel guests
+                         awk '{print $1" "$2" "$3}' hotelGuests.txt
+                         # The below function will return the number of nights a hotel guest stayed in
+                         guestStayNights
+                      else
+                         echo -e "No guest list for you!\n"
+                         guestStayNights
+                      fi
+                else
+                   exiting
+                fi
+
+          # e. View the list of guests who stayed in for more than 7 days
+          elif [ "$searchChoice" == "E" ] || [ "$searchChoice" == "e" ]
+             then
+                echo -e "\nList of the guests who stayed in for more than 7 days:\n"
+                # The below command returns the list of hotel guests who stayed longer than 7 nights
+                # source https://stackoverflow.com/questions/19801358/printing-lines-which-have-a-field-number-greater-than-in-awk
+                awk '$10 > 7 {print $1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "$10" "$11}'  hotelGuests.txt
+                echo
+
+          # f. View the list of guests per year of stay
+          elif [ "$searchChoice" == "F" ] || [ "$searchChoice" == "f" ]
+             then
+                # The below function returns a list of guests who checked-in in the inputted 'year'
+                guestStayYear
+
+          # g. View the list of guests whose rate was higher than
+          elif [ "$searchChoice" == "G" ] || [ "$searchChoice" == "g" ]
+             then
+                echo 'Please, enter a rate (between 51 and 999):'
+                read rate
+                if ! [[ "$rate" == "#" ]]
+                   then
+                      if ! [ -z "${rate}" ] && [[ "$rate" -ge 51 && "$rate" -le 999 ]]
+                         then
+                            echo -e "\nList of the guests whose rate they paid was higher than $rate:\n"
+                            # The below command returns the list of hotel guests whose rate was higher than the one inputted
+                            # by the user. See source below:
+                            # https://stackoverflow.com/questions/19801358/printing-lines-which-have-a-field-number-greater-than-in-awk
+                            awk -v rate="$rate" '$7 > rate {print $1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "$10" "$11}'  hotelGuests.txt
+                            echo
+                      else
+                         echo -e "You can only enter a number between 51 and 999\nExiting now!\n"
+                      fi
+                else
+                   exiting
+                fi
+             fi
+          else
+            echo "Exiting"
+          fi
+             ;;
+       3)
+          # 3. Delete a hotel guest
+          echo -n 'Do you want to view the list of hotel guests? (y/n) :'
+          read answer
+          if ! [[ "$answer" == "#" ]]
+             then
+                if [[ "$answer"  ==  "y" || "$answer" == "Y" ]]
+                   then
+                      cat hotelGuests.txt
+                      # The below function enables the user to delete a hotel guest from the 'hotelGuests.txt' file
+                      deleteCheck
+      	        else
+                   deleteCheck
+                fi
+          else
+             exiting
+          fi
+	     ;;
+       4)
+          # 4. Delete multiple hotel guests
+          # The below function enables the user todelet  multiple hotel guest from the 'hotelGuests.txt' file
+          deleteMultipleCheck
+          ;;
+       5)
+          # 5. View the list of archived guests
+          # The below command returns a view of all deleted and archived hotel guest records
+          echo "List of archived guests:"
+          echo "========================"
+          cat archivedHotelGuests.txt
+          echo -e "\nDo you wish to add them back into the hotelGuest.txt list (Duplicate records won't appear in the hotelGuests.txt file' ? (y/n):"
+          read answer
+          if ! [[ "$answer" == "#" ]]
+             then
+                if [[ "$answer"  ==  "y" || "$answer" == "Y" ]]
+                   then
+                      echo "Great! They are back in..."
+                      # The below command adds the deleted/archived hotel guests record back to the 'hotelGuests.txt' file
+                      cat archivedHotelGuests.txt >> hotelGuests.txt
+                      # The below commands sort the hotel guest records by the check-in year and will get rid of duplicates
+                      awk '{print $1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "$10" "$11}' hotelGuests.txt  | sort -k 8n | uniq > guests
+                      mv guests hotelGuests.txt
+                      # View of all hotel guest records
+                      echo "List of active hotel guests:"
+                      echo "============================================================================================================="
+                      awk 'BEGIN { printf "%-35s %s %-7s %s %-15s %s %-5s %s %-7s %s %-5s %s\n", "id", "fname", "lname", "room", "phone", "nationality", "rate", "check-in", "check-out", "nights", "email", "" } { printf "%-5s %s %-5s %s %-5s %s %-5s %s %-5s %s %-5s %s\n",$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, "", "","" }' hotelGuests.txt
+                      echo
+                else
+                   echo "Bye!"
+                fi
+          else
+             exiting
+          fi
+          ;;
+       6)
+          # 6. Exit
+	  echo "Exiting.."
+	  exit 0
+	  ;;
+       *)
+	  echo "Invalid option. Please choose a valid menu option"
+          ;;
+      esac
+  done
