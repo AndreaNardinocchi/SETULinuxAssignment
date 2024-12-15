@@ -1,4 +1,4 @@
 #!/bin/bash
 
-echo "Please, watch my video on https://www.youtube.com/watch?v=T8yEdNx4dB0, thank you!"
+echo "Please, watch my video on https://www.youtube.com/watch?v=Ruff6imLAzU&t=25s, thank you!"
 
